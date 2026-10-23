@@ -115,7 +115,7 @@ int ZPWM::setSampleRate(int frequency)
 
     // 判断定时器是否在 APB2 总线上
     uint32_t timBase = (uint32_t)tim.Instance;
-    if (timBase == TIM1_BASE ||
+    if (timBase == TIM1_BASE || timBase == TIM8_BASE ||
         timBase == TIM9_BASE || timBase == TIM10_BASE || timBase == TIM11_BASE) {
         isAPB2Timer = true;
         pclkFreq = HAL_RCC_GetPCLK2Freq();
