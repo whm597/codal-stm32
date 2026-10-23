@@ -103,7 +103,37 @@ static const uint32_t channels[] = {
  */
 int ZPWM::setSampleRate(int frequency)
 {
-    int clock_frequency = 2 * HAL_RCC_GetPCLK1Freq();
+    // 根据定时器挂载的总线(APB1/APB2)和分频系数，正确计算定时器时钟频率
+    // TIMxCLK = PCLKx when the APB prescaler = 1, else TIMxCLK = 2 * PCLKx
+    RCC_ClkInitTypeDef clkInit;
+    uint32_t flashLatency;
+    HAL_RCC_GetClockConfig(&clkInit, &flashLatency);
+
+    uint32_t pclkFreq;
+    uint32_t apbDivider;
+    bool isAPB2Timer = false;
+
+    // 判断定时器是否在 APB2 总线上
+    uint32_t timBase = (uint32_t)tim.Instance;
+    if (timBase == TIM1_BASE || timBase == TIM8_BASE ||
+        timBase == TIM9_BASE || timBase == TIM10_BASE || timBase == TIM11_BASE) {
+        isAPB2Timer = true;
+        pclkFreq = HAL_RCC_GetPCLK2Freq();
+        apbDivider = clkInit.APB2CLKDivider;
+    } else {
+        isAPB2Timer = false;
+        pclkFreq = HAL_RCC_GetPCLK1Freq();
+        apbDivider = clkInit.APB1CLKDivider;
+    }
+
+    // 计算定时器时钟频率
+    int clock_frequency;
+    if (apbDivider == RCC_HCLK_DIV1) {
+        clock_frequency = pclkFreq;
+    } else {
+        clock_frequency = pclkFreq * 2;
+    }
+
     int cyclesPerSample = clock_frequency / frequency;
 
     int prescaler = cyclesPerSample / 256;
